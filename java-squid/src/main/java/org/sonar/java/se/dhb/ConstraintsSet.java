@@ -115,6 +115,11 @@ public class ConstraintsSet implements Cloneable {
       case NOT_EQUAL_TO:
         setEqualConstraints((BinaryExpressionTree) syntaxNode, !condition, false);
         break;
+      case CONDITIONAL_AND:
+      case CONDITIONAL_OR:
+        BinaryExpressionTree conditionExpression = (BinaryExpressionTree) syntaxNode;
+        setConditionConstraints(conditionExpression.rightOperand(), condition);
+        break;
       default:
         break;
     }

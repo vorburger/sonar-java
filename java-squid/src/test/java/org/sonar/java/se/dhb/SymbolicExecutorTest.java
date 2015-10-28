@@ -39,13 +39,16 @@ public class SymbolicExecutorTest {
       return messages.isEmpty();
     }
 
+    public int size() {
+      return messages.size();
+    }
+
     public String getMessage(int line) {
       return messages.get(Integer.valueOf(line));
     }
 
     @Override
     public CompilationUnitTree getTree() {
-      // TODO Auto-generated method stub
       return null;
     }
 
@@ -130,10 +133,8 @@ public class SymbolicExecutorTest {
 
     @Override
     public Integer getJavaVersion() {
-      // TODO Auto-generated method stub
       return null;
     }
-
   }
 
   @Test
@@ -142,7 +143,7 @@ public class SymbolicExecutorTest {
     TestScanner report = new TestScanner();
     SymbolicExecutor executor = new SymbolicExecutor(report);
     executor.execute(cfg);
-    assertThat(report.isEmpty()).as("No error should have been reported");
+    assertThat(report.isEmpty()).as("No error should have been reported").isTrue();
   }
 
   @Test
@@ -151,6 +152,7 @@ public class SymbolicExecutorTest {
     TestScanner report = new TestScanner();
     SymbolicExecutor executor = new SymbolicExecutor(report);
     executor.execute(cfg);
+    assertThat(report.size()).as("Number of errors").isEqualTo(1);
     assertThat(report.getMessage(1)).as("NPE expected at line 1").isEqualTo("NullPointerException might be thrown as 'a' is nullable here");
   }
 
@@ -160,6 +162,7 @@ public class SymbolicExecutorTest {
     TestScanner report = new TestScanner();
     SymbolicExecutor executor = new SymbolicExecutor(report);
     executor.execute(cfg);
+    assertThat(report.size()).as("Number of errors").isEqualTo(1);
     assertThat(report.getMessage(1)).as("NPE expected at line 1").isEqualTo("NullPointerException might be thrown as 'b' is nullable here");
   }
 
@@ -169,34 +172,36 @@ public class SymbolicExecutorTest {
     TestScanner report = new TestScanner();
     SymbolicExecutor executor = new SymbolicExecutor(report);
     executor.execute(cfg);
-    assertThat(report.isEmpty()).as("No error should have been reported");
+    assertThat(report.isEmpty()).as("No error should have been reported").isTrue();
   }
 
   @Test
   public void conditionalNPE() {
-    final CFG cfg = buildCFG("void fun() { String a = getString(); if (a==null) {a.toString();}}");
+    final CFG cfg = buildCFG("void fun(String a) { if (a==null) {a.toString();}}");
     TestScanner report = new TestScanner();
     SymbolicExecutor executor = new SymbolicExecutor(report);
     executor.execute(cfg);
+    assertThat(report.size()).as("Number of errors").isEqualTo(1);
     assertThat(report.getMessage(1)).as("NPE expected at line 1").isEqualTo("NullPointerException might be thrown as 'a' is nullable here");
   }
 
   @Test
   public void conditionalNPEInverted() {
-    final CFG cfg = buildCFG("void fun() { String a = getString(); if (null==a) {a.toString();}}");
+    final CFG cfg = buildCFG("void fun(String a) { if (null==a) {a.toString();}}");
     TestScanner report = new TestScanner();
     SymbolicExecutor executor = new SymbolicExecutor(report);
     executor.execute(cfg);
+    assertThat(report.size()).as("Number of errors").isEqualTo(1);
     assertThat(report.getMessage(1)).as("NPE expected at line 1").isEqualTo("NullPointerException might be thrown as 'a' is nullable here");
   }
 
   @Test
   public void conditionalNoError() {
-    final CFG cfg = buildCFG("void fun() { String a = getString(); if (a==null) {a = \"Hello\";} a.toString();}");
+    final CFG cfg = buildCFG("void fun(String a) { if (a==null) {a = \"Hello\";} a.toString();}");
     TestScanner report = new TestScanner();
     SymbolicExecutor executor = new SymbolicExecutor(report);
     executor.execute(cfg);
-    assertThat(report.isEmpty()).as("No error should have been reported");
+    assertThat(report.isEmpty()).as("No error should have been reported").isTrue();
   }
 
   @Test
@@ -205,15 +210,17 @@ public class SymbolicExecutorTest {
     TestScanner report = new TestScanner();
     SymbolicExecutor executor = new SymbolicExecutor(report);
     executor.execute(cfg);
+    assertThat(report.size()).as("Number of errors").isEqualTo(1);
     assertThat(report.getMessage(1)).as("Unneeded IF expected at line 1").isEqualTo("Change this condition so that it does not always evaluate to \"false\"");
   }
 
   @Test
   public void unneededSecondIf() {
-    final CFG cfg = buildCFG("void fun() { String a = getString(); if (a==null) {String b = \"Hello world!\"; if (a==null) {a = \"unneeded!\";} a = \"Hello\";} a.toString();}");
+    final CFG cfg = buildCFG("void fun(String a) { if (a==null) {String b = \"Hello world!\"; if (a==null) {a = \"unneeded!\";} a = \"Hello\";} a.toString();}");
     TestScanner report = new TestScanner();
     SymbolicExecutor executor = new SymbolicExecutor(report);
     executor.execute(cfg);
+    assertThat(report.size()).as("Number of errors").isEqualTo(1);
     assertThat(report.getMessage(1)).as("Unneeded IF expected at line 1").isEqualTo("Change this condition so that it does not always evaluate to \"true\"");
   }
 
@@ -223,6 +230,7 @@ public class SymbolicExecutorTest {
     TestScanner report = new TestScanner();
     SymbolicExecutor executor = new SymbolicExecutor(report);
     executor.execute(cfg);
+    assertThat(report.size()).as("Number of errors").isEqualTo(1);
     assertThat(report.getMessage(1)).as("Unneeded IF expected at line 1").isEqualTo("Change this condition so that it does not always evaluate to \"false\"");
   }
 
@@ -232,7 +240,7 @@ public class SymbolicExecutorTest {
     TestScanner report = new TestScanner();
     SymbolicExecutor executor = new SymbolicExecutor(report);
     executor.execute(cfg);
-    assertThat(report.isEmpty()).as("No error should have been reported");
+    assertThat(report.isEmpty()).as("No error should have been reported").isTrue();
   }
 
   @Test
@@ -241,6 +249,7 @@ public class SymbolicExecutorTest {
     TestScanner report = new TestScanner();
     SymbolicExecutor executor = new SymbolicExecutor(report);
     executor.execute(cfg);
+    assertThat(report.size()).as("Number of errors").isEqualTo(1);
     assertThat(report.getMessage(1)).as("NPE expected at line 1").isEqualTo("NullPointerException might be thrown as 'to' is nullable here");
   }
 
@@ -250,7 +259,7 @@ public class SymbolicExecutorTest {
     TestScanner report = new TestScanner();
     SymbolicExecutor executor = new SymbolicExecutor(report);
     executor.execute(cfg);
-    assertThat(report.isEmpty()).as("No error should have been reported");
+    assertThat(report.isEmpty()).as("No error should have been reported").isTrue();
   }
 
   @Test
@@ -259,6 +268,26 @@ public class SymbolicExecutorTest {
     TestScanner report = new TestScanner();
     SymbolicExecutor executor = new SymbolicExecutor(report);
     executor.execute(cfg);
+    assertThat(report.size()).as("Number of errors").isEqualTo(1);
     assertThat(report.getMessage(1)).as("NPE expected at line 1").isEqualTo("NullPointerException might be thrown as 'to' is nullable here");
+  }
+
+  @Test
+  public void cascadedAndInIf() {
+    final CFG cfg = buildCFG("boolean fun(Object from, Object to) {if(to != null && from != null && from.equals(to.origin())) {to.collectResult(from.device());}}");
+    TestScanner report = new TestScanner();
+    SymbolicExecutor executor = new SymbolicExecutor(report);
+    executor.execute(cfg);
+    assertThat(report.isEmpty()).as("No error should have been reported").isTrue();
+  }
+
+  @Test
+  public void cascadedAndInIfNPE() {
+    final CFG cfg = buildCFG("boolean fun(Object from, Object to) {if(to != null && from == null && from.equals(to.origin())) {to.collectResult(from.device());}}");
+    TestScanner report = new TestScanner();
+    SymbolicExecutor executor = new SymbolicExecutor(report);
+    executor.execute(cfg);
+    assertThat(report.size()).as("Number of errors").isEqualTo(1);
+    assertThat(report.getMessage(1)).as("NPE expected at line 1").isEqualTo("NullPointerException might be thrown as 'from' is nullable here");
   }
 }

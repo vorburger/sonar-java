@@ -53,6 +53,7 @@ public class SymbolicProcessor {
         return new NumberConstant(((LiteralTree) syntaxNode).value());
       case METHOD_INVOCATION:
         // FIXME If one can infer that the method returns a non-null value, then a non-null value should be assigned
+        return new NonNullSymbolicValue();
       default:
         return new AnySymbolicValue();
     }
