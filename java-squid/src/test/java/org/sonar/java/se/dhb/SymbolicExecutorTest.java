@@ -38,7 +38,7 @@ public class SymbolicExecutorTest {
     return CFG.build(tree);
   }
 
-  private static CompilationUnitExecutor buildCFGFromResource(String resourceName) {
+  private static CompilationUnitTree buildCFGFromResource(String resourceName) {
     try (final InputStream stream = SymbolicExecutorTest.class.getResourceAsStream(resourceName);
       final InputStreamReader fileReader = new InputStreamReader(stream);
       final BufferedReader reader = new BufferedReader(fileReader);
@@ -50,10 +50,7 @@ public class SymbolicExecutorTest {
         line = reader.readLine();
       }
       printer.close();
-      final CompilationUnitTree compiledClass = (CompilationUnitTree) parser.parse(out.toString());
-      CompilationUnitExecutor generator = new CompilationUnitExecutor(compiledClass);
-      compiledClass.accept(generator);
-      return generator;
+      return (CompilationUnitTree) parser.parse(out.toString());
     } catch (IOException e) {
       Fail.fail("Unable to open resource " + resourceName);
     }
@@ -322,10 +319,24 @@ public class SymbolicExecutorTest {
 
   @Test
    public void nullableField() {
-    final CompilationUnitExecutor executor = buildCFGFromResource("/NullableFieldNPE.java");
+    final CompilationUnitTree compiledClass = buildCFGFromResource("/SymbolicExecutorTestClass.java");
     TestScanner report = new TestScanner();
-    executor.execute(report);
+    CompilationUnitExecutor executor = new CompilationUnitExecutor(compiledClass, report);
+    compiledClass.accept(executor);
+    executor.execute("nullableFieldNPE");
     assertThat(report.size()).as("Number of errors").isEqualTo(1);
     assertThat(report.getMessage(11)).as("NPE expected at line 1").isEqualTo("NullPointerException might be thrown as 'from' is nullable here");
    }
+
+  // @Test
+  // public void cascadedAndInIfNPE_bis() {
+  // final CompilationUnitTree compiledClass = buildCFGFromResource("/SymbolicExecutorTestClass.java");
+  // TestScanner report = new TestScanner();
+  // CompilationUnitExecutor executor = new CompilationUnitExecutor(compiledClass, report);
+  // compiledClass.accept(executor);
+  // executor.execute("cascadedAndInIfNPE");
+  // assertThat(report.size()).as("Number of errors").isEqualTo(1);
+  // assertThat(report.getMessage(15)).as("NPE expected at line 1").isEqualTo("NullPointerException might be thrown as 'from' is nullable
+  // here");
+  // }
 }

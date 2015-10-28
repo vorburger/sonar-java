@@ -12,38 +12,44 @@ import org.sonar.plugins.java.api.tree.VariableTree;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 
 public class CompilationUnitExecutor extends AbstractTreeVisitor {
 
   private static final int DEFAULT_MAXIMUM_COMPLEXITY = 2000;
 
+  private final JavaFileScannerContext context;
+  private final int maximumComplexity;
   private final ConstraintsSet classConstraints = new ConstraintsSet();
   private ConstraintsSet contextualConstraints;
   private final Map<String, MethodTree> methods = new HashMap<>();
   private final Map<String, ConstraintsSet> methodConstraints = new HashMap<>();
 
-  public CompilationUnitExecutor(CompilationUnitTree compilationTree) {
+  public CompilationUnitExecutor(CompilationUnitTree compilationTree, JavaFileScannerContext context) {
+    this(compilationTree, context, DEFAULT_MAXIMUM_COMPLEXITY);
+  }
+
+  public CompilationUnitExecutor(CompilationUnitTree compilationTree, JavaFileScannerContext context, int maximumComplexity) {
     contextualConstraints = classConstraints;
     for (Tree tree : ((ClassTree) compilationTree.types().get(0)).members()) {
       tree.accept(this);
     }
+    this.context = context;
+    this.maximumComplexity = maximumComplexity;
   }
 
-  public void execute(JavaFileScannerContext context) {
-    execute(context, DEFAULT_MAXIMUM_COMPLEXITY);
+  public void execute() {
+    for (String methodName : methods.keySet()) {
+      execute(methodName);
+    }
   }
 
-  public void execute(JavaFileScannerContext context, int maximumComplexity) {
-    for (Entry<String, MethodTree> entry : methods.entrySet()) {
-      final String methodName = entry.getKey();
-      final MethodTree method = entry.getValue();
-      final ConstraintsSet constraints = methodConstraints.get(methodName);
-      if (method.block() != null) {
-        CFG cfg = CFG.build(method);
-        SymbolicExecutor executor = new SymbolicExecutor(context, maximumComplexity, constraints);
-        executor.execute(cfg);
-      }
+  public void execute(String methodName) {
+    final MethodTree method = methods.get(methodName);
+    final ConstraintsSet constraints = methodConstraints.get(methodName);
+    if (method.block() != null) {
+      CFG cfg = CFG.build(method);
+      SymbolicExecutor executor = new SymbolicExecutor(context, maximumComplexity, constraints);
+      executor.execute(cfg);
     }
   }
 
