@@ -5,6 +5,7 @@ import org.sonar.plugins.java.api.JavaCheck;
 import org.sonar.plugins.java.api.JavaFileScannerContext;
 import org.sonar.plugins.java.api.tree.Tree;
 
+@SuppressWarnings("serial")
 public abstract class AbstractSymbolicException extends Exception {
 
   private final int line;

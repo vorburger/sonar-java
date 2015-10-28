@@ -4,8 +4,8 @@ import com.google.common.collect.ImmutableMap;
 import org.sonar.plugins.java.api.tree.BinaryExpressionTree;
 import org.sonar.plugins.java.api.tree.ExpressionTree;
 import org.sonar.plugins.java.api.tree.IdentifierTree;
-import org.sonar.plugins.java.api.tree.LiteralTree;
 import org.sonar.plugins.java.api.tree.Tree;
+import org.sonar.plugins.java.api.tree.VariableTree;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,16 +30,20 @@ public class ConstraintsSet implements Cloneable {
     constraints = ImmutableMap.copyOf(collectConstraints);
   }
 
-  public void setConstraints(String syntaxNode, SymbolicValue value) {
+  public void setConstraints(VariableTree syntaxNode) {
+
+  }
+
+  public void setConstraints(String name, SymbolicValue value) {
     if (value != null) {
-      constraints.put(syntaxNode, value);
+      constraints.put(name, value);
     }
   }
 
-  public SymbolicValue getValue(String syntaxNode) {
-    SymbolicValue value = constraints.get(syntaxNode);
+  public SymbolicValue getValue(String name) {
+    SymbolicValue value = constraints.get(name);
     if (value == null && parent != null) {
-      return parent.getValue(syntaxNode);
+      return parent.getValue(name);
     }
     return value == null ? new AnySymbolicValue() : value;
   }
@@ -83,30 +87,6 @@ public class ConstraintsSet implements Cloneable {
     return buffer.toString();
   }
 
-  private SymbolicValue getExpressionValue(ExpressionTree syntaxNode) {
-    switch (syntaxNode.kind()) {
-      case IDENTIFIER:
-        return constraints.get(((IdentifierTree) syntaxNode).name());
-      case NULL_LITERAL:
-        return SymbolicValue.NULL;
-      case STRING_LITERAL:
-        return new StringConstant(((LiteralTree) syntaxNode).token().text());
-      case BOOLEAN_LITERAL:
-        return "true".equals(((LiteralTree) syntaxNode).token().text()) ? BooleanConstant.TRUE : BooleanConstant.FALSE;
-      case CHAR_LITERAL:
-        return new CharacterConstant(((LiteralTree) syntaxNode).value());
-      case INT_LITERAL:
-      case LONG_LITERAL:
-      case FLOAT_LITERAL:
-      case DOUBLE_LITERAL:
-        return new NumberConstant(((LiteralTree) syntaxNode).value());
-      case METHOD_INVOCATION:
-        return new NonNullSymbolicValue();
-      default:
-        return new AnySymbolicValue();
-    }
-  }
-
   void setConditionConstraints(ExpressionTree syntaxNode, boolean condition) throws IncompatibleConstraintsException {
     switch (syntaxNode.kind()) {
       case EQUAL_TO:
@@ -129,9 +109,9 @@ public class ConstraintsSet implements Cloneable {
     ExpressionTree leftOperand = syntaxNode.leftOperand();
     ExpressionTree rightOperand = syntaxNode.rightOperand();
     if (leftOperand.is(Tree.Kind.IDENTIFIER)) {
-      setEqualConstraints(syntaxNode, ((IdentifierTree) leftOperand).name(), getExpressionValue(rightOperand), condition, inverted);
+      setEqualConstraints(syntaxNode, ((IdentifierTree) leftOperand).name(), ValueGenerator.value(rightOperand, this), condition, inverted);
     } else if (rightOperand.is(Tree.Kind.IDENTIFIER)) {
-      setEqualConstraints(syntaxNode, ((IdentifierTree) rightOperand).name(), getExpressionValue(leftOperand), condition, inverted);
+      setEqualConstraints(syntaxNode, ((IdentifierTree) rightOperand).name(), ValueGenerator.value(leftOperand, this), condition, inverted);
     }
   }
 

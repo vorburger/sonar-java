@@ -2,6 +2,7 @@ package org.sonar.java.se.dhb;
 
 import com.google.common.base.Charsets;
 import com.sonar.sslr.api.typed.ActionParser;
+import org.fest.assertions.Fail;
 import org.junit.Test;
 import org.sonar.java.ast.parser.JavaParser;
 import org.sonar.java.cfg.CFG;
@@ -13,7 +14,13 @@ import org.sonar.plugins.java.api.tree.CompilationUnitTree;
 import org.sonar.plugins.java.api.tree.MethodTree;
 import org.sonar.plugins.java.api.tree.Tree;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +36,28 @@ public class SymbolicExecutorTest {
     final CompilationUnitTree cut = (CompilationUnitTree) parser.parse("class A { " + methodCode + " }");
     final MethodTree tree = ((MethodTree) ((ClassTree) cut.types().get(0)).members().get(0));
     return CFG.build(tree);
+  }
+
+  private static CompilationUnitExecutor buildCFGFromResource(String resourceName) {
+    try (final InputStream stream = SymbolicExecutorTest.class.getResourceAsStream(resourceName);
+      final InputStreamReader fileReader = new InputStreamReader(stream);
+      final BufferedReader reader = new BufferedReader(fileReader);
+      final StringWriter out = new StringWriter();
+      final PrintWriter printer = new PrintWriter(out);) {
+      String line = reader.readLine();
+      while (line != null) {
+        printer.println(line);
+        line = reader.readLine();
+      }
+      printer.close();
+      final CompilationUnitTree compiledClass = (CompilationUnitTree) parser.parse(out.toString());
+      CompilationUnitExecutor generator = new CompilationUnitExecutor(compiledClass);
+      compiledClass.accept(generator);
+      return generator;
+    } catch (IOException e) {
+      Fail.fail("Unable to open resource " + resourceName);
+    }
+    return null;
   }
 
   private static class TestScanner implements JavaFileScannerContext {
@@ -290,4 +319,13 @@ public class SymbolicExecutorTest {
     assertThat(report.size()).as("Number of errors").isEqualTo(1);
     assertThat(report.getMessage(1)).as("NPE expected at line 1").isEqualTo("NullPointerException might be thrown as 'from' is nullable here");
   }
+
+  @Test
+   public void nullableField() {
+    final CompilationUnitExecutor executor = buildCFGFromResource("/NullableFieldNPE.java");
+    TestScanner report = new TestScanner();
+    executor.execute(report);
+    assertThat(report.size()).as("Number of errors").isEqualTo(1);
+    assertThat(report.getMessage(11)).as("NPE expected at line 1").isEqualTo("NullPointerException might be thrown as 'from' is nullable here");
+   }
 }

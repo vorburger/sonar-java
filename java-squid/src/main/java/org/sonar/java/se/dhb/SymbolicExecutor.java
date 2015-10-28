@@ -4,9 +4,6 @@ import org.sonar.java.cfg.CFG;
 import org.sonar.java.cfg.CFG.Block;
 import org.sonar.plugins.java.api.JavaCheck;
 import org.sonar.plugins.java.api.JavaFileScannerContext;
-import org.sonar.plugins.java.api.tree.BaseTreeVisitor;
-import org.sonar.plugins.java.api.tree.BlockTree;
-import org.sonar.plugins.java.api.tree.MethodTree;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,40 +12,32 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class SymbolicExecutor extends BaseTreeVisitor {
+public class SymbolicExecutor {
 
   private static final int DEFAULT_MAXIMUM_COMPLEXITY = 2000;
 
-  private static JavaCheck JAVA_CHECK = new JavaCheck() {
+  private static JavaCheck javacheck = new JavaCheck() {
   };
 
   private final JavaFileScannerContext context;
   private final int maximumComplexity;
+  private final ConstraintsSet initialConstaints;
   private final Map<Block, List<ConstraintsSet>> processedBlocks = new HashMap<>();
   private int complexity = 0;
 
   public SymbolicExecutor(JavaFileScannerContext context) {
-    this(context, DEFAULT_MAXIMUM_COMPLEXITY);
+    this(context, DEFAULT_MAXIMUM_COMPLEXITY, new ConstraintsSet());
   }
 
-  public SymbolicExecutor(JavaFileScannerContext context, int maximumComplexity) {
+  public SymbolicExecutor(JavaFileScannerContext context, int maximumComplexity, ConstraintsSet constraints) {
     this.context = context;
     this.maximumComplexity = maximumComplexity;
-  }
-
-  @Override
-  public void visitMethod(MethodTree tree) {
-    super.visitMethod(tree);
-    BlockTree body = tree.block();
-    if (body != null) {
-      CFG cfg = CFG.build(tree);
-      execute(cfg);
-    }
+    initialConstaints = constraints;
   }
 
   public void execute(CFG cfg) {
     try {
-      SymbolicProcessor processor = new SymbolicProcessor(this);
+      SymbolicProcessor processor = new SymbolicProcessor(this, initialConstaints);
       processor.process(cfg.entry());
     } catch (AbstractSymbolicException e) {
       report(e);
@@ -77,7 +66,7 @@ public class SymbolicExecutor extends BaseTreeVisitor {
   }
 
   public void report(AbstractSymbolicException exception) {
-    exception.report(context, JAVA_CHECK);
+    exception.report(context, javacheck);
   }
 
   @Override
