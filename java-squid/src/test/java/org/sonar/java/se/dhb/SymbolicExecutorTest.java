@@ -308,16 +308,6 @@ public class SymbolicExecutorTest {
   }
 
   @Test
-  public void cascadedAndInIfNPE() {
-    final CFG cfg = buildCFG("boolean fun(Object from, Object to) {if(to != null && from == null && from.equals(to.origin())) {to.collectResult(from.device());}}");
-    TestScanner report = new TestScanner();
-    SymbolicExecutor executor = new SymbolicExecutor(report);
-    executor.execute(cfg);
-    assertThat(report.size()).as("Number of errors").isEqualTo(1);
-    assertThat(report.getMessage(1)).as("NPE expected at line 1").isEqualTo("NullPointerException might be thrown as 'from' is nullable here");
-  }
-
-  @Test
    public void nullableField() {
     final CompilationUnitTree compiledClass = buildCFGFromResource("/SymbolicExecutorTestClass.java");
     TestScanner report = new TestScanner();
@@ -328,15 +318,24 @@ public class SymbolicExecutorTest {
     assertThat(report.getMessage(11)).as("NPE expected at line 1").isEqualTo("NullPointerException might be thrown as 'from' is nullable here");
    }
 
-  // @Test
-  // public void cascadedAndInIfNPE_bis() {
-  // final CompilationUnitTree compiledClass = buildCFGFromResource("/SymbolicExecutorTestClass.java");
-  // TestScanner report = new TestScanner();
-  // CompilationUnitExecutor executor = new CompilationUnitExecutor(compiledClass, report);
-  // compiledClass.accept(executor);
-  // executor.execute("cascadedAndInIfNPE");
-  // assertThat(report.size()).as("Number of errors").isEqualTo(1);
-  // assertThat(report.getMessage(15)).as("NPE expected at line 1").isEqualTo("NullPointerException might be thrown as 'from' is nullable
-  // here");
-  // }
+  @Test
+  public void cascadedAndInIfNPE() {
+    final CompilationUnitTree compiledClass = buildCFGFromResource("/SymbolicExecutorTestClass.java");
+    TestScanner report = new TestScanner();
+    CompilationUnitExecutor executor = new CompilationUnitExecutor(compiledClass, report);
+    compiledClass.accept(executor);
+    executor.execute("cascadedAndInIfNPE");
+    assertThat(report.size()).as("Number of errors").isEqualTo(1);
+    assertThat(report.getMessage(15)).as("NPE expected at line 1").isEqualTo("NullPointerException might be thrown as 'from' is nullable here");
+  }
+
+  @Test
+  public void testNotnullable() {
+    final CompilationUnitTree compiledClass = buildCFGFromResource("/NullPointerTest.java");
+    TestScanner report = new TestScanner();
+    CompilationUnitExecutor executor = new CompilationUnitExecutor(compiledClass, report);
+    compiledClass.accept(executor);
+    executor.execute("NullPointerTest", "testNotnullable");
+    assertThat(report.isEmpty()).as("No error should have been reported").isTrue();
+  }
 }
