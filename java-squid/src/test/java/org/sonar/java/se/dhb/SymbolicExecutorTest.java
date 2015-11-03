@@ -313,7 +313,7 @@ public class SymbolicExecutorTest {
     TestScanner report = new TestScanner();
     CompilationUnitExecutor executor = new CompilationUnitExecutor(compiledClass, report);
     compiledClass.accept(executor);
-    executor.execute("nullableFieldNPE");
+    executor.execute("SymbolicExecutorTestClass", "nullableFieldNPE");
     assertThat(report.size()).as("Number of errors").isEqualTo(1);
     assertThat(report.getMessage(11)).as("NPE expected at line 1").isEqualTo("NullPointerException might be thrown as 'from' is nullable here");
    }
@@ -324,7 +324,7 @@ public class SymbolicExecutorTest {
     TestScanner report = new TestScanner();
     CompilationUnitExecutor executor = new CompilationUnitExecutor(compiledClass, report);
     compiledClass.accept(executor);
-    executor.execute("cascadedAndInIfNPE");
+    executor.execute("SymbolicExecutorTestClass", "cascadedAndInIfNPE");
     assertThat(report.size()).as("Number of errors").isEqualTo(1);
     assertThat(report.getMessage(15)).as("NPE expected at line 1").isEqualTo("NullPointerException might be thrown as 'from' is nullable here");
   }

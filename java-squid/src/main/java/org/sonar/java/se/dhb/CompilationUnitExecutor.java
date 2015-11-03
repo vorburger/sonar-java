@@ -9,7 +9,9 @@ import org.sonar.plugins.java.api.tree.MethodTree;
 import org.sonar.plugins.java.api.tree.Tree;
 import org.sonar.plugins.java.api.tree.VariableTree;
 
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 
 public class CompilationUnitExecutor extends AbstractTreeVisitor {
@@ -19,9 +21,8 @@ public class CompilationUnitExecutor extends AbstractTreeVisitor {
   private final JavaFileScannerContext context;
   private final int maximumComplexity;
   private final Map<String, CompiledClass> classes = new HashMap<>();
-  private CompiledClass currentClass;
-  private CompiledMethod currentMethod;
-  private ConstraintsSet currentConstraints;
+  private Deque<CompiledClass> processedClasses = new LinkedList<>();
+  private Deque<CompiledMethod> processedMethods = new LinkedList<>();
 
   public CompilationUnitExecutor(CompilationUnitTree compilationTree, JavaFileScannerContext context) {
     this(compilationTree, context, DEFAULT_MAXIMUM_COMPLEXITY);
@@ -52,39 +53,44 @@ public class CompilationUnitExecutor extends AbstractTreeVisitor {
   @Override
   public void visitClass(ClassTree tree) {
     String name = tree.simpleName().name();
-    currentClass = new CompiledClass();
+    processedClasses.push(new CompiledClass());
     for (Tree member : tree.members()) {
       member.accept(this);
     }
-    classes.put(name, currentClass);
-    currentClass = null;
+    classes.put(name, processedClasses.pop());
   }
 
   @Override
   public void visitMethod(MethodTree tree) {
     String name = tree.simpleName().name();
-    currentMethod = new CompiledMethod(currentClass.constraints(), tree);
-    currentClass.putMethod(name, currentMethod);
-    currentMethod = null;
+    final CompiledClass currentClass = processedClasses.peek();
+    final CompiledMethod method = new CompiledMethod(currentClass.constraints(), tree);
+    processedMethods.push(method);
+    for (VariableTree variableTree : tree.parameters()) {
+      loadConstraints(variableTree, method.constraints());
+    }
+    currentClass.putMethod(name, processedMethods.pop());
   }
 
   @Override
   public void visitVariable(VariableTree variableTree) {
-    if (currentClass != null) {
-      ConstraintsSet constraints = currentMethod == null ? currentClass.constraints() : currentClass.constraints();
-      final String name = variableTree.simpleName().name();
-      ExpressionTree initializer = variableTree.initializer();
-      if (initializer == null) {
-        constraints.setConstraints(name, new NonNullSymbolicValue());
-        for (AnnotationTree annotation : variableTree.modifiers().annotations()) {
-          final String type = annotation.annotationType().toString();
-          if ("Nullable".equals(type)) {
-            constraints.setConstraints(name, new AnySymbolicValue());
-          }
+    final CompiledClass currentClass = processedClasses.peek();
+    loadConstraints(variableTree, currentClass.constraints());
+  }
+
+  private void loadConstraints(VariableTree variableTree, ConstraintsSet constraints) {
+    final String name = variableTree.simpleName().name();
+    ExpressionTree initializer = variableTree.initializer();
+    if (initializer == null) {
+      constraints.setConstraints(name, new NonNullSymbolicValue());
+      for (AnnotationTree annotation : variableTree.modifiers().annotations()) {
+        final String type = annotation.annotationType().toString();
+        if ("Nullable".equals(type) || "CheckForNull".equals(type)) {
+          constraints.setConstraints(name, new AnySymbolicValue());
         }
-      } else {
-        constraints.setConstraints(variableTree.simpleName().name(), ValueGenerator.value(initializer, constraints));
       }
+    } else {
+      constraints.setConstraints(variableTree.simpleName().name(), ValueGenerator.value(initializer, constraints));
     }
   }
 }
