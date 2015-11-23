@@ -138,6 +138,8 @@ public class JavaSymbolTest {
     JavaSymbol.TypeJavaSymbol typeSymbol = new JavaSymbol.TypeJavaSymbol(Flags.INTERFACE, "t", outermostClass);
     JavaSymbol.MethodJavaSymbol methodSymbol = new JavaSymbol.MethodJavaSymbol(Flags.STATIC | Flags.ABSTRACT, "name", typeSymbol);
     JavaSymbol.TypeJavaSymbol enumeration = new JavaSymbol.TypeJavaSymbol(Flags.ENUM, "enumeration", P_PACKAGE_JAVA_SYMBOL);
+    FakeUnknownSymbol fakeUnknownSymbol = new FakeUnknownSymbol(Flags.PRIVATE, "other", typeSymbol);
+
     assertThat(methodSymbol.isEnum()).isFalse();
     assertThat(methodSymbol.isFinal()).isFalse();
     assertThat(methodSymbol.isAbstract()).isTrue();
@@ -146,10 +148,28 @@ public class JavaSymbolTest {
     assertThat(methodSymbol.isVolatile()).isFalse();
     assertThat(methodSymbol.isProtected()).isFalse();
 
+    assertThat(methodSymbol.hasSameVisibility(new JavaSymbol.TypeJavaSymbol(0, "other", typeSymbol))).isTrue();
+    assertThat(methodSymbol.hasSameVisibility(new JavaSymbol.TypeJavaSymbol(Flags.PRIVATE, "other", typeSymbol))).isFalse();
+    assertThat(methodSymbol.hasSameVisibility(fakeUnknownSymbol)).isFalse();
+    assertThat(fakeUnknownSymbol.hasSameVisibility(methodSymbol)).isFalse();
+
     assertThat(enumeration.isEnum()).isTrue();
     assertThat(enumeration.isAbstract()).isFalse();
     assertThat(enumeration.isStatic()).isFalse();
     assertThat(P_PACKAGE_JAVA_SYMBOL.isPackageSymbol()).isTrue();
     assertThat(outermostClass.isPackageSymbol()).isFalse();
+  }
+
+  private static class FakeUnknownSymbol extends JavaSymbol.TypeJavaSymbol {
+
+    public FakeUnknownSymbol(int flags, String name, JavaSymbol owner) {
+      super(flags, name, owner);
+    }
+
+    @Override
+    public boolean isUnknown() {
+      return true;
+    }
+
   }
 }

@@ -25,7 +25,9 @@ import org.sonar.check.Priority;
 import org.sonar.check.Rule;
 import org.sonar.java.model.ModifiersUtils;
 import org.sonar.java.model.declaration.MethodTreeImpl;
+import org.sonar.java.resolve.JavaSymbol;
 import org.sonar.java.tag.Tag;
+import org.sonar.plugins.java.api.semantic.Symbol;
 import org.sonar.plugins.java.api.tree.AnnotationTree;
 import org.sonar.plugins.java.api.tree.BlockTree;
 import org.sonar.plugins.java.api.tree.ExpressionStatementTree;
@@ -92,7 +94,14 @@ public class MethodOnlyCallsSuperCheck extends SubscriptionBaseVisitor {
     } else if (statementTree.is(Tree.Kind.RETURN_STATEMENT)) {
       callToSuper = ((ReturnStatementTree) statementTree).expression();
     }
-    return callToSuper != null && isCallToSuper(methodTree, callToSuper);
+    return callToSuper != null && isCallToSuper(methodTree, callToSuper) && sameVisibility(methodTree.symbol(), ((MethodInvocationTree) callToSuper).symbol());
+  }
+
+  private static boolean sameVisibility(Symbol.MethodSymbol methodSymbol, Symbol symbol) {
+    if (symbol.isUnknown()) {
+      return true;
+    }
+    return ((JavaSymbol) methodSymbol).hasSameVisibility((JavaSymbol) symbol);
   }
 
   private static boolean isCallToSuper(MethodTree methodTree, Tree callToSuper) {

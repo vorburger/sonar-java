@@ -129,4 +129,24 @@ class A {
   public final String toString() {
     return super.toString();
   }
+
+  protected Object bar1() {
+    return null;
+  }
+
+  protected Object bar2() {
+    return null;
+  }
+}
+
+class B extends A {
+  @Override
+  public Object bar1() { // Compliant
+    return super.bar1();
+  }
+
+  @Override
+  protected Object bar2() { // Noncompliant
+    return super.bar2();
+  }
 }

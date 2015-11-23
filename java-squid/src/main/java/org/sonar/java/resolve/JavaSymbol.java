@@ -36,6 +36,7 @@ import org.sonar.plugins.java.api.tree.VariableTree;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -242,7 +243,11 @@ public class JavaSymbol implements Symbol {
   @Override
   public boolean isPackageVisibility() {
     complete();
-    return (flags & (Flags.PROTECTED | Flags.PRIVATE | Flags.PUBLIC)) == 0;
+    return visibility() == 0;
+  }
+
+  private int visibility() {
+    return flags & (Flags.PROTECTED | Flags.PRIVATE | Flags.PUBLIC);
   }
 
   public void addUsage(IdentifierTree tree) {
@@ -262,6 +267,13 @@ public class JavaSymbol implements Symbol {
 
   interface Completer {
     void complete(JavaSymbol symbol);
+  }
+
+  public boolean hasSameVisibility(JavaSymbol symbol) {
+    if (isUnknown() || symbol.isUnknown()) {
+      return false;
+    }
+    return visibility() == symbol.visibility();
   }
 
   /**
